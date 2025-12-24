@@ -1,24 +1,32 @@
 
 import React, { useState, useEffect } from 'react';
 
-const Countdown = () => {
+const Countdown = ({ onBackupSlot }) => {
     const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
     const [nextBackupDate, setNextBackupDate] = useState(null);
 
     useEffect(() => {
         const calculateTimeLeft = () => {
             const now = new Date();
-            let target = new Date(now);
+            const target = new Date(now);
 
-            // Find next Wednesday (3)
             const dayOfWeek = now.getDay();
             const difference = (3 + 7 - dayOfWeek) % 7;
 
             target.setDate(now.getDate() + difference);
             target.setHours(10, 0, 0, 0);
 
-            // If today is Wednesday and it's past 10 AM, move to next week
-            if (difference === 0 && now > target) {
+            const windowEnd = new Date(target);
+            windowEnd.setMinutes(20);
+
+            if (difference === 0 && now >= target && now < windowEnd) {
+                if (onBackupSlot) onBackupSlot(true);
+                return { days: 0, hours: 0, minutes: 0, seconds: 0 };
+            } else {
+                if (onBackupSlot) onBackupSlot(false);
+            }
+
+            if (difference === 0 && now >= windowEnd) {
                 target.setDate(target.getDate() + 7);
             }
 
@@ -43,7 +51,7 @@ const Countdown = () => {
         setTimeLeft(calculateTimeLeft()); // Init immediately
 
         return () => clearInterval(timer);
-    }, []);
+    }, [onBackupSlot]);
 
     const formatDate = (date) => {
         if (!date) return "";

@@ -8,6 +8,8 @@ function App() {
   const [backups, setBackups] = useState([]);
   const [connected, setConnected] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [isPollingWindow, setIsPollingWindow] = useState(false);
+  const [todaysBackupFound, setTodaysBackupFound] = useState(false);
 
   useEffect(() => {
     // Initialize Google Drive Client (API Key only)
@@ -17,11 +19,52 @@ function App() {
     });
   }, []);
 
-  const fetchLogs = async () => {
-    setLoading(true);
+  useEffect(() => {
+    // Reset todaysBackupFound when entering the polling window
+    if (isPollingWindow) {
+      setTodaysBackupFound(false);
+    }
+  }, [isPollingWindow]);
+
+  useEffect(() => {
+    // Polling logic
+    let intervalId;
+
+    if (isPollingWindow && !todaysBackupFound && connected) {
+      console.log("Starting polling for new backup (every 60s)...");
+      // Poll immediately
+      fetchLogs(true);
+
+      intervalId = setInterval(() => {
+        console.log("Polling for new backup...");
+        fetchLogs(true);
+      }, 60000); // 1 minute
+    }
+
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, [isPollingWindow, todaysBackupFound, connected]);
+
+  const fetchLogs = async (isPolling = false) => {
+    if (!isPolling) setLoading(true); // Don't show loading spinner on background poll
+
     const logs = await getBackupLogs();
     setBackups(logs);
-    setLoading(false);
+
+    // Check if we found today's backup
+    if (logs && logs.length > 0) {
+      const latest = logs[0];
+      const todayStr = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD
+
+
+      if (latest.createdTime && latest.createdTime.startsWith(todayStr)) {
+        console.log("Today's backup found! Stopping polling.");
+        setTodaysBackupFound(true);
+      }
+    }
+
+    if (!isPolling) setLoading(false);
   };
 
   return (
@@ -34,7 +77,7 @@ function App() {
       </header>
 
       <main className="main-content">
-        <Countdown />
+        <Countdown onBackupSlot={setIsPollingWindow} />
         <div className="spacer"></div>
         {loading ? (
           <p className="loading-text">Carregando informações do backup...</p>
