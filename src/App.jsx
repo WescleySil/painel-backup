@@ -4,6 +4,8 @@ import Countdown from './components/Countdown';
 import BackupTable from './components/BackupTable';
 import { initClient, getBackupLogs } from './services/driveService';
 
+import FooterCredits from './components/FooterCredits';
+
 function App() {
   const [backups, setBackups] = useState([]);
   const [connected, setConnected] = useState(false);
@@ -88,6 +90,7 @@ function App() {
 
       <footer className="app-footer">
         <p>Sistema de Backup Automatizado &bull; Quartas-feiras às 10:00</p>
+        <FooterCredits />
       </footer>
     </div>
   );
